@@ -1,4 +1,15 @@
-# one-time-password [![CI](https://github.com/haskell-cryptography/one-time-password/actions/workflows/one-time-password.yml/badge.svg)](https://github.com/haskell-cryptography/one-time-password/actions/workflows/one-time-password.yml)
+<h1 align="center">
+  one-time-password
+</h1>
+
+<p align="center">
+<a href="https://github.com/haskell-cryptography/one-time-password/actions">
+  <img src="https://img.shields.io/github/actions/workflow/status/haskell-cryptography/one-time-password/one-time-password.yml?style=flat-square" alt="CI badge" />
+</a>
+<a href="https://hackage.haskell.org/package/one-time-password">
+  <img src="https://img.shields.io/hackage/v/one-time-password?style=flat-square" alt="Hackage" />
+</a>
+</p>
 
 One time password implementation according to RFC4226 and RFC6238 in Haskell.
 
