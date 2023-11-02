@@ -1,7 +1,6 @@
-# What
+# one-time-password [![CI](https://github.com/haskell-cryptography/one-time-password/actions/workflows/one-time-password.yml/badge.svg)](https://github.com/haskell-cryptography/one-time-password/actions/workflows/one-time-password.yml)
 
-One time password implementation according to RFC4226 and RFC6238 in
-Haskell.
+One time password implementation according to RFC4226 and RFC6238 in Haskell.
 
 # Generation passwords
 
