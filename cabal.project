@@ -1,0 +1,14 @@
+packages:
+  ./
+  https://hackage.haskell.org/package/sel-0.0.1.0/candidate/sel-0.0.1.0.tar.gz
+  https://hackage.haskell.org/package/libsodium-bindings-0.0.1.0/candidate/libsodium-bindings-0.0.1.0.tar.gz
+
+active-repositories: hackage.haskell.org
+
+tests: True
+
+package *
+  ghc-options: -haddock
+  documentation: true
+
+test-show-details: direct
