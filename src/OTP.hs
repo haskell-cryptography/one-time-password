@@ -75,7 +75,7 @@ hotp512 key counter digits = do
 
 truncateHash :: [Word8] -> Word32
 truncateHash b =
-  let offset = last b .&. 15 -- take low 4 bits of last byte
+  let offset = last b .&. 0xF -- take low 4 bits of last byte
       rb = BS.pack $ take 4 $ drop (fromIntegral offset) b -- resulting 4 byte value
    in case runGet getWord32be rb of
         Left e -> error e
