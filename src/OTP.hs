@@ -23,15 +23,36 @@ module OTP
   , totpCounterRange
   ) where
 
+import Chronos
 import Data.Bits
 import Data.ByteString qualified as BS
 import Data.Serialize.Get
 import Data.Serialize.Put
-import Data.Time
-import Data.Time.Clock.POSIX
 import Data.Word
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
+import System.IO.Unsafe (unsafePerformIO)
+
+data Algorithm = SHA256 | SHA512
+  deriving stock (Eq, Show, Ord)
+
+-- |
+--
+-- @since 3.0.0.0
+data OTPError
+  = NotEnoughDigits
+  deriving stock (Eq, Show, Ord)
+
+data TOTPSettings = OTPSettings
+  { digits :: Word
+  -- ^ The number of digits needed for authentication. Must be at least 6.
+  , algorithm :: Algorithm
+  -- ^ HMAC-SHA-256 or HMAC-SHA-512
+  , step :: Word
+  -- ^ Time step, which is the validity period of a TOTP token
+  , skew :: Word
+  }
+  deriving stock (Eq, Show, Ord)
 
 -- | Compute HMAC-Based One-Time Password using secret key and counter value.
 --
@@ -49,14 +70,16 @@ hotp256
   -> Word64
   -- ^ Counter value
   -> Word
-  -- ^ Number of digits in a password. Should be between 6 and 8.
-  -> IO Word32
+  -- ^ Number of digits in a password. MUST be 6 digits at a minimum, and possibly 7 and 8 digits.
+  -> Either OTPError Word32
   -- ^ HOTP
-hotp256 key counter digits = do
-  let msg = runPut $ putWord64be counter
-  hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
-  let w = truncateHash $ BS.unpack hash
-  pure $ w `mod` (10 ^ digits)
+hotp256 key counter digits
+  | digits < 6 = Left NotEnoughDigits
+  | otherwise = unsafePerformIO $ do
+      let msg = runPut $ putWord64be counter
+      hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
+      let w = truncateHash $ BS.unpack hash
+      pure $ Right $ w `mod` (10 ^ digits)
 
 hotp512
   :: SHA512.AuthenticationKey
@@ -65,13 +88,15 @@ hotp512
   -- ^ Counter value
   -> Word
   -- ^ Number of digits in a password
-  -> IO Word32
+  -> Either OTPError Word32
   -- ^ HOTP
-hotp512 key counter digits = do
-  let msg = runPut $ putWord64be counter
-  hash <- SHA512.authenticationTagToBinary <$> SHA512.authenticate msg key
-  let w = truncateHash $ BS.unpack hash
-  pure $ w `mod` (10 ^ digits)
+hotp512 key counter digits
+  | digits < 6 = Left NotEnoughDigits
+  | otherwise = unsafePerformIO $ do
+      let msg = runPut $ putWord64be counter
+      hash <- SHA512.authenticationTagToBinary <$> SHA512.authenticate msg key
+      let w = truncateHash $ BS.unpack hash
+      pure $ Right $ w `mod` (10 ^ digits)
 
 truncateHash :: [Word8] -> Word32
 truncateHash b =
@@ -79,7 +104,7 @@ truncateHash b =
       rb = BS.pack $ take 4 $ drop (fromIntegral offset) b -- resulting 4 byte value
    in case runGet getWord32be rb of
         Left e -> error e
-        Right res -> res .&. (0x80000000 - 1) -- reset highest bit
+        Right res -> res .&. 0x7FFFFFFF -- reset highest bit
 
 -- | Check presented password against a valid range.
 --
@@ -120,11 +145,11 @@ hotp256Check
   -- ^ Number of digits provided
   -> Word32
   -- ^ Digits entered by user
-  -> IO Bool
+  -> Either OTPError Bool
   -- ^ True if password is valid
-hotp256Check secr rng cnt len pass = do
-  let counters = counterRange rng cnt
-  passwds <- traverse (\c -> hotp256 secr c len) counters
+hotp256Check secr range counter digits pass = do
+  let counters = counterRange range counter
+  passwds <- traverse (\c -> hotp256 secr c digits) counters
   pure $ elem pass passwds
 
 hotp512Check
@@ -138,11 +163,11 @@ hotp512Check
   -- ^ Number of digits in a password
   -> Word32
   -- ^ Password entered by user
-  -> IO Bool
+  -> Either OTPError Bool
   -- ^ True if password is valid
-hotp512Check secr rng cnt len pass = do
-  let counters = counterRange rng cnt
-  passwds <- traverse (\c -> hotp512 secr c len) counters
+hotp512Check secr range counter digits pass = do
+  let counters = counterRange range counter
+  passwds <- traverse (\c -> hotp512 secr c digits) counters
   pure $ elem pass passwds
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
@@ -161,16 +186,16 @@ hotp512Check secr rng cnt len pass = do
 totp256
   :: SHA256.AuthenticationKey
   -- ^ Shared secret
-  -> UTCTime
+  -> Time
   -- ^ Time of TOTP
   -> Word64
   -- ^ Time range in seconds
   -> Word
   -- ^ Number of digits in a password
-  -> IO Word32
+  -> Either OTPError Word32
   -- ^ TOTP
-totp256 secr time period len =
-  hotp256 secr (totpCounter time period) len
+totp256 secr time period digits =
+  hotp256 secr (totpCounter time period) digits
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
 --
@@ -194,10 +219,10 @@ totp512
   -- ^ Time range in seconds
   -> Word
   -- ^ Number of digits in a password
-  -> IO Word32
+  -> Either OTPError Word32
   -- ^ TOTP
-totp512 secr time period len =
-  hotp512 secr (totpCounter time period) len
+totp512 secr time period digits =
+  hotp512 secr (totpCounter time period) digits
 
 -- | Check presented password against time periods.
 --
@@ -231,11 +256,11 @@ totp256Check
   -- ^ Numer of digits in a password
   -> Word32
   -- ^ Password given by user
-  -> IO Bool
+  -> Either OTPError Bool
   -- ^ True if password is valid
-totp256Check secr rng time period len pass = do
-  let counters = totpCounterRange rng time period
-  passwds <- traverse (\c -> hotp256 secr c len) counters
+totp256Check secr range time period digits pass = do
+  let counters = totpCounterRange range time period
+  passwds <- traverse (\c -> hotp256 secr c digits) counters
   pure $ elem pass passwds
 
 -- | Check presented password against time periods.
@@ -270,11 +295,11 @@ totp512Check
   -- ^ Numer of digits in a password
   -> Word32
   -- ^ Password given by user
-  -> IO Bool
+  -> Either OTPError Bool
   -- ^ True if password is valid
-totp512Check secr rng time period len pass = do
-  let counters = totpCounterRange rng time period
-  passwds <- traverse (\c -> hotp512 secr c len) counters
+totp512Check secr range time period digits pass = do
+  let counters = totpCounterRange range time period
+  passwds <- traverse (\c -> hotp512 secr c digits) counters
   pure $ elem pass passwds
 
 -- | Calculate HOTP counter using time. Starting time (T0
@@ -289,7 +314,7 @@ totp512Check secr rng time period len pass = do
 -- >>> totpCounter (read "2010-10-10 00:01:00 UTC") 30
 -- 42888962
 totpCounter
-  :: UTCTime
+  :: Time
   -- ^ Time of totp
   -> Word64
   -- ^ Time range in seconds
@@ -309,10 +334,10 @@ totpCounter time period =
 -- >>> counterRange (1, 0) 9000
 -- [8999,9000]
 --
--- >>> length $ counterRange (5000, 0) 9000
+-- >>> length $ digits $ counterRange (5000, 0) 9000
 -- 501
 --
--- >>> length $ counterRange (5000, 5000) 9000
+-- >>> length $ digits $ counterRange (5000, 5000) 9000
 -- 1000
 --
 -- >>> counterRange (2, 2) maxBound
@@ -361,5 +386,5 @@ totpCounterRange
   -> UTCTime
   -> Word64
   -> [Word64]
-totpCounterRange rng time period =
-  counterRange rng $ totpCounter time period
+totpCounterRange range time period =
+  counterRange range $ totpCounter time period
