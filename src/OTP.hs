@@ -23,7 +23,7 @@ module OTP
   , totpCounterRange
   ) where
 
-import Chronos
+import Chronos (Time (..), Timespan (..), epoch, second)
 import Data.Bits
 import Data.ByteString qualified as BS
 import Data.Serialize.Get
@@ -32,6 +32,7 @@ import Data.Word
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import System.IO.Unsafe (unsafePerformIO)
+import Torsor qualified
 
 data Algorithm = SHA256 | SHA512
   deriving stock (Eq, Show, Ord)
@@ -55,15 +56,6 @@ data TOTPSettings = OTPSettings
   deriving stock (Eq, Show, Ord)
 
 -- | Compute HMAC-Based One-Time Password using secret key and counter value.
---
--- >>> hotp "1234" 100 6
--- 317569
---
--- >>> hotp SHA512 "1234" 100 6
--- 134131
---
--- >>> hotp SHA512 "1234" 100 8
--- 55134131
 hotp256
   :: SHA256.AuthenticationKey
   -- ^ Shared secret
@@ -107,33 +99,6 @@ truncateHash b =
         Right res -> res .&. 0x7FFFFFFF -- reset highest bit
 
 -- | Check presented password against a valid range.
---
--- >>> hotp "1234" 10 6
--- 50897
---
--- >>> hotpCheck "1234" (0,0) 10 6 50897
--- True
---
--- >>> hotpCheck "1234" (0,0) 9 6 50897
--- False
---
--- >>> hotpCheck "1234" (0,1) 9 6 50897
--- True
---
--- >>> hotpCheck "1234" (1,0) 11 6 50897
--- True
---
--- >>> hotpCheck "1234" (2,2) 8 6 50897
--- True
---
--- >>> hotpCheck "1234" (2,2) 7 6 50897
--- False
---
--- >>> hotpCheck "1234" (2,2) 12 6 50897
--- True
---
--- >>> hotpCheck "1234" (2,2) 13 6 50897
--- False
 hotp256Check
   :: SHA256.AuthenticationKey
   -- ^ Shared secret
@@ -147,9 +112,9 @@ hotp256Check
   -- ^ Digits entered by user
   -> Either OTPError Bool
   -- ^ True if password is valid
-hotp256Check secr range counter digits pass = do
+hotp256Check secret range counter digits pass = do
   let counters = counterRange range counter
-  passwds <- traverse (\c -> hotp256 secr c digits) counters
+  passwds <- traverse (\c -> hotp256 secret c digits) counters
   pure $ elem pass passwds
 
 hotp512Check
@@ -165,92 +130,50 @@ hotp512Check
   -- ^ Password entered by user
   -> Either OTPError Bool
   -- ^ True if password is valid
-hotp512Check secr range counter digits pass = do
+hotp512Check secret range counter digits pass = do
   let counters = counterRange range counter
-  passwds <- traverse (\c -> hotp512 secr c digits) counters
+  passwds <- traverse (\c -> hotp512 secret c digits) counters
   pure $ elem pass passwds
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
---
--- >>> totp "1234" (read "2010-10-10 00:01:00 UTC") 30 6
--- 388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:00 UTC") 30 8
--- 43388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:15 UTC") 30 8
--- 43388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:31 UTC") 30 8
--- 39110359
 totp256
   :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> Time
   -- ^ Time of TOTP
-  -> Word64
+  -> Timespan
   -- ^ Time range in seconds
   -> Word
   -- ^ Number of digits in a password
   -> Either OTPError Word32
   -- ^ TOTP
-totp256 secr time period digits =
-  hotp256 secr (totpCounter time period) digits
+totp256 secret time period digits =
+  hotp256 secret (totpCounter time period) digits
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
---
--- >>> totp "1234" (read "2010-10-10 00:01:00 UTC") 30 6
--- 388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:00 UTC") 30 8
--- 43388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:15 UTC") 30 8
--- 43388892
---
--- >>> totp "1234" (read "2010-10-10 00:01:31 UTC") 30 8
--- 39110359
 totp512
   :: SHA512.AuthenticationKey
   -- ^ Shared secret
-  -> UTCTime
+  -> Time
   -- ^ Time of TOTP
-  -> Word64
+  -> Timespan
   -- ^ Time range in seconds
   -> Word
   -- ^ Number of digits in a password
   -> Either OTPError Word32
   -- ^ TOTP
-totp512 secr time period digits =
-  hotp512 secr (totpCounter time period) digits
+totp512 secret time period digits =
+  hotp512 secret (totpCounter time period) digits
 
 -- | Check presented password against time periods.
---
--- >>> totp "1234" (read "2010-10-10 00:00:00 UTC") 30 6
--- 778374
---
--- >>> totpCheck "1234" (0, 0) (read "2010-10-10 00:00:00 UTC") 30 6 778374
--- True
---
--- >>> totpCheck "1234" (0, 0) (read "2010-10-10 00:00:30 UTC") 30 6 778374
--- False
---
--- >>> totpCheck "1234" (1, 0) (read "2010-10-10 00:00:30 UTC") 30 6 778374
--- True
---
--- >>> totpCheck "1234" (1, 0) (read "2010-10-10 00:01:00 UTC") 30 6 778374
--- False
---
--- >>> totpCheck "1234" (2, 0) (read "2010-10-10 00:01:00 UTC") 30 6 778374
--- True
 totp256Check
   :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
-  -> UTCTime
+  -> Time
   -- ^ Time of TOTP
-  -> Word64
+  -> Timespan
   -- ^ Time range in seconds
   -> Word
   -- ^ Numer of digits in a password
@@ -258,38 +181,20 @@ totp256Check
   -- ^ Password given by user
   -> Either OTPError Bool
   -- ^ True if password is valid
-totp256Check secr range time period digits pass = do
+totp256Check secret range time period digits pass = do
   let counters = totpCounterRange range time period
-  passwds <- traverse (\c -> hotp256 secr c digits) counters
+  passwds <- traverse (\c -> hotp256 secret c digits) counters
   pure $ elem pass passwds
 
 -- | Check presented password against time periods.
---
--- >>> totp "1234" (read "2010-10-10 00:00:00 UTC") 30 6
--- 778374
---
--- >>> totpCheck "1234" (0, 0) (read "2010-10-10 00:00:00 UTC") 30 6 778374
--- True
---
--- >>> totpCheck "1234" (0, 0) (read "2010-10-10 00:00:30 UTC") 30 6 778374
--- False
---
--- >>> totpCheck "1234" (1, 0) (read "2010-10-10 00:00:30 UTC") 30 6 778374
--- True
---
--- >>> totpCheck "1234" (1, 0) (read "2010-10-10 00:01:00 UTC") 30 6 778374
--- False
---
--- >>> totpCheck "1234" (2, 0) (read "2010-10-10 00:01:00 UTC") 30 6 778374
--- True
 totp512Check
   :: SHA512.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
-  -> UTCTime
+  -> Time
   -- ^ Time of TOTP
-  -> Word64
+  -> Timespan
   -- ^ Time range in seconds
   -> Word
   -- ^ Numer of digits in a password
@@ -297,32 +202,34 @@ totp512Check
   -- ^ Password given by user
   -> Either OTPError Bool
   -- ^ True if password is valid
-totp512Check secr range time period digits pass = do
+totp512Check secret range time period digits pass = do
   let counters = totpCounterRange range time period
-  passwds <- traverse (\c -> hotp512 secr c digits) counters
+  passwds <- traverse (\c -> hotp512 secret c digits) counters
   pure $ elem pass passwds
 
 -- | Calculate HOTP counter using time. Starting time (T0
 -- according to RFC6238) is 0 (begining of UNIX epoch)
---
--- >>> totpCounter (read "2010-10-10 00:00:00 UTC") 30
--- 42888960
---
--- >>> totpCounter (read "2010-10-10 00:00:30 UTC") 30
--- 42888961
---
--- >>> totpCounter (read "2010-10-10 00:01:00 UTC") 30
--- 42888962
 totpCounter
   :: Time
   -- ^ Time of totp
-  -> Word64
+  -> Timespan
   -- ^ Time range in seconds
   -> Word64
   -- ^ Resulting counter
 totpCounter time period =
-  let timePOSIX = floor $ utcTimeToPOSIXSeconds time
-   in timePOSIX `div` period
+  ts2w (asSeconds (sinceEpoch time)) `div` ts2w (asSeconds period)
+  where
+    ts2w :: Timespan -> Word64
+    ts2w (Timespan s) = fromIntegral s
+
+-- Until https://github.com/andrewthad/chronos/pull/83 is merged
+-- these two functions will live here
+sinceEpoch :: Time -> Timespan
+sinceEpoch t = Torsor.difference t epoch
+
+asSeconds :: Timespan -> Timespan
+asSeconds (Timespan t) = case second of
+  Timespan s -> Timespan (t `div` s)
 
 -- | Make a sequence of acceptable counters, protected from
 -- arithmetic overflow. Maximum range is limited to 1000 due to huge
@@ -334,10 +241,10 @@ totpCounter time period =
 -- >>> counterRange (1, 0) 9000
 -- [8999,9000]
 --
--- >>> length $ digits $ counterRange (5000, 0) 9000
+-- >>> length $ counterRange (5000, 0) 9000
 -- 501
 --
--- >>> length $ digits $ counterRange (5000, 5000) 9000
+-- >>> length $ counterRange (5000, 5000) 9000
 -- 1000
 --
 -- >>> counterRange (2, 2) maxBound
@@ -369,22 +276,10 @@ counterRange (tolow', tohigh') ideal =
     trim l h = max l . min h
 
 -- | Make a sequence of acceptable periods.
---
--- >>> totpCounterRange (0, 0) (read "2010-10-10 00:01:00 UTC") 30
--- [42888962]
---
--- >>> totpCounterRange (2, 0) (read "2010-10-10 00:01:00 UTC") 30
--- [42888960,42888961,42888962]
---
--- >>> totpCounterRange (0, 2) (read "2010-10-10 00:01:00 UTC") 30
--- [42888962,42888963,42888964]
---
--- >>> totpCounterRange (2, 2) (read "2010-10-10 00:01:00 UTC") 30
--- [42888960,42888961,42888962,42888963,42888964]
 totpCounterRange
   :: (Word64, Word64)
-  -> UTCTime
-  -> Word64
+  -> Time
+  -> Timespan
   -> [Word64]
 totpCounterRange range time period =
   counterRange range $ totpCounter time period
