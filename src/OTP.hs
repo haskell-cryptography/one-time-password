@@ -24,7 +24,7 @@ module OTP
   , totp512Check
 
     -- * Auxiliary
-  , Digits(..)
+  , Digits (..)
   , UserDigits
   , totpCounter
   , counterRange
@@ -34,23 +34,30 @@ module OTP
 import Chronos (Time (..), Timespan (..), epoch, second)
 import Data.Bits
 import Data.ByteString qualified as BS
+import Data.Int (Int64)
 import Data.Kind
-import Data.Serialize.Get
 import Data.Serialize.Put
+import Data.Type.Bool
 import Data.Type.Ord
 import Data.Word
+import Debug.Trace (traceShowM)
 import GHC.TypeLits
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import System.IO.Unsafe (unsafePerformIO)
 import Torsor qualified
-import Data.Type.Bool
-import Data.Int (Int64)
 
 type UserDigits :: Nat -> Constraint
-type UserDigits digits = If (digits >=? 6) (() :: Constraint)
-      (TypeError ('Text "You cannot request less than 6 digits (digits requested: "
-         ':<>: ShowType digits ':<>: 'Text ")"))
+type UserDigits digits =
+  If
+    (digits >=? 6)
+    (() :: Constraint)
+    ( TypeError
+        ( 'Text "You cannot request less than 6 digits (digits requested: "
+            ':<>: ShowType digits
+            ':<>: 'Text ")"
+        )
+    )
 
 data Digits (n :: Natural) = Digits
   deriving stock (Show)
@@ -90,8 +97,11 @@ hotp256
 hotp256 key counter digits = unsafePerformIO $ do
   let msg = runPut $ putWord64be counter
   hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
-  let w = truncateHash $ BS.unpack hash
-  pure $ w `mod` (10 ^ (fromInteger @Word32 $ natVal digits))
+  let code = truncateHash $ BS.unpack hash
+  let power = fromInteger @Word32 $ natVal digits
+  let result = code `mod` (10 ^ power)
+  traceShowM (code, power, result)
+  pure result
 
 -- | Compute HMAC-Based One-Time Password using secret key and counter value.
 hotp512
@@ -113,11 +123,16 @@ hotp512 key counter digits = unsafePerformIO $ do
 
 truncateHash :: [Word8] -> Word32
 truncateHash b =
-  let offset = last b .&. 0xF -- take low 4 bits of last byte
-      rb = BS.pack $ take 4 $ drop (fromIntegral offset) b -- resulting 4 byte value
-   in case runGet getWord32be rb of
-        Left e -> error e
-        Right res -> res .&. 0x7FFFFFFF -- reset highest bit
+  let to32 = fromIntegral @Word8 @Word32
+      offset = last b .&. 0xF -- take low 4 bits of last byte
+      code = case take 4 $ drop (fromIntegral offset) b of -- resulting 4 byte value
+        [b0, b1, b2, b3] ->
+          ((to32 b0 .&. 0x7F) .<<. 24)
+            .|. ((to32 b1 .&. 0xFF) .<<. 16)
+            .|. ((to32 b2 .&. 0xFF) .<<. 8)
+            .|. (to32 b3 .&. 0xFF)
+        _ -> error "The impossible happened"
+   in code
 
 -- | Check presented password against a valid range.
 hotp256Check

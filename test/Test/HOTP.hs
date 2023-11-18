@@ -4,13 +4,13 @@ module Test.HOTP where
 
 import Test.Tasty
 
-import Data.Text qualified as Text
+import Data.Foldable (forM_)
+import Data.Word (Word32)
 import OTP
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import Test.Tasty.HUnit
-import Data.Word (Word32)
-import Data.Foldable (forM_)
+import Test.Utils
 
 spec :: TestTree
 spec =
@@ -30,14 +30,23 @@ spec =
 
 testExpectedHOTP256Codes :: Assertion
 testExpectedHOTP256Codes = do
-  let key = case SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43" of
-        Right k -> k
-        Left e -> error (Text.unpack e)
+  key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
   let counters = [0 .. 10]
   let results = fmap (\counter -> hotp256 key counter (Digits @6)) counters
   assertEqual
     "Codes are expected and stable"
-    [545840, 42194, 783687, 856777, 199784, 809856, 270404, 137308, 219373, 965280, 635343]
+    [ 545840
+    , 42194
+    , 783687
+    , 856777
+    , 199784
+    , 809856
+    , 270404
+    , 137308
+    , 219373
+    , 965280
+    , 635343
+    ]
     results
 
   forM_ results $ \code ->
@@ -47,9 +56,7 @@ testExpectedHOTP256Codes = do
 
 testValidateHOTP256 :: Assertion
 testValidateHOTP256 = do
-  let key = case SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43" of
-        Right k -> k
-        Left e -> error (Text.unpack e)
+  key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
   let code = hotp256 key 30 (Digits @6)
   let result = hotp256Check key (29, 31) 30 (Digits @6) code
   assertBool
@@ -58,15 +65,24 @@ testValidateHOTP256 = do
 
 testExpectedHOTP512Codes :: Assertion
 testExpectedHOTP512Codes = do
-  let key = case SHA512.authenticationKeyFromHexByteString "11f1bf4c4136f33194c95c80e29dfb091f488ca9ac12b07907e4ed145fd35269" of
-        Right k -> k
-        Left e -> error (Text.unpack e)
+  key <- assertRight $ SHA512.authenticationKeyFromHexByteString "11f1bf4c4136f33194c95c80e29dfb091f488ca9ac12b07907e4ed145fd35269"
   let counters = [0 .. 10]
   let results = fmap (\counter -> hotp512 key counter (Digits @6)) counters
 
   assertEqual
     "Codes are expected and stable"
-    [789887,828664,852597,476319,98272,202574,57559,321460,156051,151927,131108]
+    [ 789887
+    , 828664
+    , 852597
+    , 476319
+    , 98272
+    , 202574
+    , 57559
+    , 321460
+    , 156051
+    , 151927
+    , 131108
+    ]
     results
 
   forM_ results $ \code ->
@@ -76,9 +92,7 @@ testExpectedHOTP512Codes = do
 
 testValidateHOTP512 :: Assertion
 testValidateHOTP512 = do
-  let key = case SHA512.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43" of
-        Right k -> k
-        Left e -> error (Text.unpack e)
+  key <- assertRight $ SHA512.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
   let code = hotp512 key 30 (Digits @6)
   let result = hotp512Check key (29, 31) 30 (Digits @6) code
   assertBool
