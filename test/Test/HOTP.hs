@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+
 module Test.HOTP where
 
 import Test.Tasty
@@ -8,6 +9,8 @@ import OTP
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import Test.Tasty.HUnit
+import Data.Word (Word32)
+import Data.Foldable (forM_)
 
 spec :: TestTree
 spec =
@@ -37,6 +40,11 @@ testExpectedHOTP256Codes = do
     [545840, 42194, 783687, 856777, 199784, 809856, 270404, 137308, 219373, 965280, 635343]
     results
 
+  forM_ results $ \code ->
+    assertBool
+      ("Code " <> show code <> " is not 6 characters long")
+      (floor (logBase 10 (fromIntegral @Word32 @Double code) + 1) == (6 :: Integer))
+
 testValidateHOTP256 :: Assertion
 testValidateHOTP256 = do
   let key = case SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43" of
@@ -50,15 +58,21 @@ testValidateHOTP256 = do
 
 testExpectedHOTP512Codes :: Assertion
 testExpectedHOTP512Codes = do
-  let key = case SHA256.authenticationKeyFromHexByteString "11f1bf4c4136f33194c95c80e29dfb091f488ca9ac12b07907e4ed145fd35269" of
+  let key = case SHA512.authenticationKeyFromHexByteString "11f1bf4c4136f33194c95c80e29dfb091f488ca9ac12b07907e4ed145fd35269" of
         Right k -> k
         Left e -> error (Text.unpack e)
   let counters = [0 .. 10]
-  let results = fmap (\counter -> hotp256 key counter (Digits @6)) counters
+  let results = fmap (\counter -> hotp512 key counter (Digits @6)) counters
+
   assertEqual
     "Codes are expected and stable"
-    [925198, 749302, 925465, 858755, 244674, 366640, 852988, 777459, 49404, 697567, 647501]
+    [789887,828664,852597,476319,98272,202574,57559,321460,156051,151927,131108]
     results
+
+  forM_ results $ \code ->
+    assertBool
+      ("Code " <> show code <> " is not 6 characters long")
+      (floor (logBase 10 (fromIntegral @Word32 @Double code) + 1) == (6 :: Integer))
 
 testValidateHOTP512 :: Assertion
 testValidateHOTP512 = do

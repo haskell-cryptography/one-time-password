@@ -4,6 +4,7 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 
 -- | Implements HMAC-Based One-Time Password Algorithm as defined in RFC 4226 and
 --  Time-Based One-Time Password Algorithm as defined in RFC 6238.
@@ -43,19 +44,13 @@ import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import System.IO.Unsafe (unsafePerformIO)
 import Torsor qualified
+import Data.Type.Bool
+import Data.Int (Int64)
 
 type UserDigits :: Nat -> Constraint
-type UserDigits digits = MinimumDigits (digits >=? 6) digits
-
-type MinimumDigits :: Bool -> Nat -> Constraint
-type family MinimumDigits proof nat where
-  MinimumDigits 'True _ = ()
-  MinimumDigits 'False n =
-    TypeError
-      ( 'Text "You cannot request less than 6 digits (digits requested: "
-          ':<>: ShowType n
-          ':<>: 'Text ")"
-      )
+type UserDigits digits = If (digits >=? 6) (() :: Constraint)
+      (TypeError ('Text "You cannot request less than 6 digits (digits requested: "
+         ':<>: ShowType digits ':<>: 'Text ")"))
 
 data Digits (n :: Natural) = Digits
   deriving stock (Show)
@@ -96,7 +91,7 @@ hotp256 key counter digits = unsafePerformIO $ do
   let msg = runPut $ putWord64be counter
   hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
   let w = truncateHash $ BS.unpack hash
-  pure $ w `mod` 10 ^ (fromInteger @Word32 $ natVal digits)
+  pure $ w `mod` (10 ^ (fromInteger @Word32 $ natVal digits))
 
 -- | Compute HMAC-Based One-Time Password using secret key and counter value.
 hotp512
@@ -114,7 +109,7 @@ hotp512 key counter digits = unsafePerformIO $ do
   let msg = runPut $ putWord64be counter
   hash <- SHA512.authenticationTagToBinary <$> SHA512.authenticate msg key
   let w = truncateHash $ BS.unpack hash
-  pure $ w `mod` 10 ^ (fromInteger @Word32 $ natVal digits)
+  pure $ w `mod` (10 ^ (fromInteger @Word32 $ natVal digits))
 
 truncateHash :: [Word8] -> Word32
 truncateHash b =
@@ -257,19 +252,19 @@ totpCounter
   -> Word64
   -- ^ Resulting counter
 totpCounter time period =
-  ts2w (asSeconds (sinceEpoch time)) `div` ts2w (asSeconds period)
+  ts2word (asSeconds (sinceEpoch time)) `div` ts2word (asSeconds period)
   where
-    ts2w :: Timespan -> Word64
-    ts2w (Timespan s) = fromIntegral s
+    ts2word :: Int64 -> Word64
+    ts2word s = fromIntegral s
 
 -- Until https://github.com/andrewthad/chronos/pull/83 is merged
 -- these two functions will live here
 sinceEpoch :: Time -> Timespan
 sinceEpoch t = Torsor.difference t epoch
 
-asSeconds :: Timespan -> Timespan
+asSeconds :: Timespan -> Int64
 asSeconds (Timespan t) = case second of
-  Timespan s -> Timespan (t `div` s)
+  Timespan s -> t `div` s
 
 -- | Make a sequence of acceptable counters, protected from
 -- arithmetic overflow. Maximum range is limited to 1000 due to huge
