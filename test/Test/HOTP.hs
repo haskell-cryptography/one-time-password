@@ -31,9 +31,10 @@ spec =
 
 testExpectedHOTP256Codes :: Assertion
 testExpectedHOTP256Codes = do
+  digits <- assertJust $ mkDigits 6
   key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
   let counters = [0 .. 10]
-  let results = fmap (\counter -> display $ hotp256 key counter (Digits @6)) counters
+  let results = fmap (\counter -> display $ hotp256 key counter digits) counters
   assertEqual
     "Codes are expected and stable"
     [ "545840"
@@ -57,18 +58,20 @@ testExpectedHOTP256Codes = do
 
 testValidateHOTP256 :: Assertion
 testValidateHOTP256 = do
+  digits <- assertJust $ mkDigits 6
   key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
-  let code = hotp256 key 30 (Digits @6)
-  let result = hotp256Check key (29, 31) 30 (Digits @6) (display code)
+  let code = hotp256 key 30 digits
+  let result = hotp256Check key (29, 31) 30 digits (display code)
   assertBool
     "Code is checked"
     result
 
 testExpectedHOTP512Codes :: Assertion
 testExpectedHOTP512Codes = do
+  digits <- assertJust $ mkDigits 6
   key <- assertRight $ SHA512.authenticationKeyFromHexByteString "11f1bf4c4136f33194c95c80e29dfb091f488ca9ac12b07907e4ed145fd35269"
   let counters = [0 .. 10]
-  let results = fmap (\counter -> display $ hotp512 key counter (Digits @6)) counters
+  let results = fmap (\counter -> display $ hotp512 key counter digits) counters
 
   assertEqual
     "Codes are expected and stable"
@@ -93,9 +96,10 @@ testExpectedHOTP512Codes = do
 
 testValidateHOTP512 :: Assertion
 testValidateHOTP512 = do
+  digits <- assertJust $ mkDigits 6
   key <- assertRight $ SHA512.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
-  let code = hotp512 key 30 (Digits @6)
-  let result = hotp512Check key (29, 31) 30 (Digits @6) (display code)
+  let code = hotp512 key 30 digits
+  let result = hotp512Check key (29, 31) 30 digits (display code)
   assertBool
     "Code is checked"
     result

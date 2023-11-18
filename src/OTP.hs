@@ -24,8 +24,8 @@ module OTP
   , totp512Check
 
     -- * Auxiliary
-  , Digits (..)
-  , UserDigits
+  , Digits
+  , mkDigits
   , totpCounter
   , counterRange
   , totpCounterRange
@@ -35,17 +35,13 @@ import Chronos (Time (..), Timespan (..), epoch, second)
 import Data.Bits
 import Data.ByteString qualified as BS
 import Data.Int (Int64)
-import Data.Kind
 import Data.List qualified as List
 import Data.Serialize.Put
 import Data.Text (Text)
 import Data.Text.Display
 import Data.Text.Lazy.Builder (Builder)
 import Data.Text.Lazy.Builder qualified as Text
-import Data.Type.Bool
-import Data.Type.Ord qualified as Type
 import Data.Word
-import GHC.TypeLits qualified as Type
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import System.IO.Unsafe (unsafePerformIO)
@@ -70,23 +66,23 @@ instance Display OTP where
 displayWord32AsOTP :: Word32 -> Word32 -> Builder
 displayWord32AsOTP digits code = Text.fromString $ printf ("%0" <> show digits <> "u") code
 
-type UserDigits :: Type.Natural -> Constraint
-type UserDigits digits =
-  If
-    (digits Type.>=? 6)
-    (() :: Constraint)
-    ( Type.TypeError
-        ( 'Type.Text "You cannot request less than 6 digits (digits requested: "
-            'Type.:<>: Type.ShowType digits
-            'Type.:<>: 'Type.Text ")"
-        )
-    )
-
 -- |
 --
 -- @since 3.0.0.0
-data Digits (n :: Type.Natural) = Digits
-  deriving stock (Eq, Show, Ord)
+newtype Digits = Digits Word32
+  deriving newtype (Eq, Show, Ord)
+
+-- |
+--
+-- RFC 4226 §5.3 says "Implementations MUST extract a 6-digit code at a minimum and possibly 7 and 8-digit code".
+--
+-- This function validates that the number of desired digits is equal or greater than 6.
+mkDigits
+  :: Word32
+  -> Maybe Digits
+mkDigits userDigits
+  | userDigits >= 6 = Just (Digits userDigits)
+  | otherwise = Nothing
 
 -- |
 --
@@ -98,45 +94,39 @@ data Algorithm = SHA256 | SHA512
 --
 -- @since 3.0.0.0
 hotp256
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA256.AuthenticationKey
+  :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> Word64
   -- ^ Counter value
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits in a password. MUST be 6 digits at a minimum, and possibly 7 and 8 digits.
   -> OTP
   -- ^ HOTP
-hotp256 key counter digits = unsafePerformIO $ do
+hotp256 key counter (Digits digits) = unsafePerformIO $ do
   let msg = runPut $ putWord64be counter
   hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
   let code = truncateHash $ BS.unpack hash
-  let power = fromInteger @Word32 $ Type.natVal digits
-  let result = code `rem` (10 ^ power)
-  pure $ OTP power result
+  let result = code `rem` (10 ^ digits)
+  pure $ OTP digits result
 
 -- | Compute HMAC-Based One-Time Password using secret key and counter value.
 --
 -- @since 3.0.0.0
 hotp512
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA512.AuthenticationKey
+  :: SHA512.AuthenticationKey
   -- ^ Shared secret
   -> Word64
   -- ^ Counter value
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits in a password
   -> OTP
   -- ^ HOTP
-hotp512 key counter digits = unsafePerformIO $ do
+hotp512 key counter (Digits digits) = unsafePerformIO $ do
   let msg = runPut $ putWord64be counter
   hash <- SHA512.authenticationTagToBinary <$> SHA512.authenticate msg key
   let code = truncateHash $ BS.unpack hash
-  let power = fromInteger @Word32 $ Type.natVal digits
-  let result = code `rem` (10 ^ power)
-  pure $ OTP power result
+  let result = code `rem` (10 ^ digits)
+  pure $ OTP digits result
 
 -- | Take a hash and truncate it to its low 4 bits of the last byte.
 --
@@ -161,15 +151,13 @@ truncateHash b =
 --
 -- @since 3.0.0.0
 hotp256Check
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA256.AuthenticationKey
+  :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
   -> Word64
   -- ^ Ideal (expected) counter value
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits provided
   -> Text
   -- ^ Digits entered by user
@@ -184,15 +172,13 @@ hotp256Check secret range counter digits pass =
 --
 -- @since 3.0.0.0
 hotp512Check
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA512.AuthenticationKey
+  :: SHA512.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
   -> Word64
   -- ^ Ideal (expected) counter value
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits in a password
   -> Text
   -- ^ Password entered by user
@@ -207,15 +193,13 @@ hotp512Check secret range counter digits pass =
 --
 -- @since 3.0.0.0
 totp256
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA256.AuthenticationKey
+  :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> Time
   -- ^ Time of TOTP
   -> Timespan
   -- ^ Time range in seconds
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits in a password
   -> OTP
   -- ^ TOTP
@@ -225,15 +209,13 @@ totp256 secret time period = hotp256 secret (totpCounter time period)
 --
 -- @since 3.0.0.0
 totp512
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA512.AuthenticationKey
+  :: SHA512.AuthenticationKey
   -- ^ Shared secret
   -> Time
   -- ^ Time of TOTP
   -> Timespan
   -- ^ Time range in seconds
-  -> Digits digits
+  -> Digits
   -- ^ Number of digits in a password
   -> OTP
   -- ^ TOTP
@@ -243,9 +225,7 @@ totp512 secret time period = hotp512 secret (totpCounter time period)
 --
 -- @since 3.0.0.0
 totp256Check
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA256.AuthenticationKey
+  :: SHA256.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
@@ -253,7 +233,7 @@ totp256Check
   -- ^ Time of TOTP
   -> Timespan
   -- ^ Time range in seconds
-  -> Digits digits
+  -> Digits
   -- ^ Numer of digits in a password
   -> Text
   -- ^ Password given by user
@@ -268,9 +248,7 @@ totp256Check secret range time period digits pass =
 --
 -- @since 3.0.0.0
 totp512Check
-  :: forall (digits :: Type.Natural)
-   . (Type.KnownNat digits, UserDigits digits)
-  => SHA512.AuthenticationKey
+  :: SHA512.AuthenticationKey
   -- ^ Shared secret
   -> (Word64, Word64)
   -- ^ Valid counter range, before and after ideal
@@ -278,7 +256,7 @@ totp512Check
   -- ^ Time of TOTP
   -> Timespan
   -- ^ Time range in seconds
-  -> Digits digits
+  -> Digits
   -- ^ Numer of digits in a password
   -> Text
   -- ^ Password given by user
