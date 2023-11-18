@@ -145,7 +145,7 @@ truncateHash b =
             .|. ((to32 b2 .&. 0xFF) .<<. 8)
             .|. (to32 b3 .&. 0xFF)
         _ -> error "The impossible happened"
-   in code .&. 0x7FFFFFFF
+   in code .&. 0x7FFFFFFF -- clear the highest bit
 
 -- | Check presented password against a valid range.
 --
