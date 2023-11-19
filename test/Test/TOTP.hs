@@ -1,7 +1,9 @@
 module Test.TOTP where
 
 import Chronos
+import Data.ByteString.Base32 qualified as Base32
 import Data.Maybe (fromJust)
+import Data.Text.Display (display)
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 import Test.Tasty
@@ -9,7 +11,6 @@ import Test.Tasty.HUnit
 import Test.Utils
 import Torsor (scale)
 
-import Data.Text.Display (display)
 import OTP.Commons
 import OTP.TOTP
 
@@ -87,9 +88,9 @@ testTOTPURIGeneration = do
   let issuer = "Localhost Inc"
   let account = "username@localhost.localdomain"
 
-  let uri = totpToURI (SHA256.unsafeAuthenticationKeyToHexByteString key) account issuer digits period HMAC_SHA1
+  let uri = totpToURI (Base32.encodeBase32 $ SHA256.unsafeAuthenticationKeyToBinary key) account issuer digits period HMAC_SHA1
 
   assertEqual
     "Expected URI"
-    ""
+    "otpauth://totp/Localhost%20Inc:username@localhost.localdomain?secret=5EGLVYWX2GD7MFEAMND47V2QAK6Q3OCHIUIQSWM5UUD6RWUIX5BQ====&issuer=Localhost%20Inc&digits=6&algorithm=SHA1&period=30"
     uri
