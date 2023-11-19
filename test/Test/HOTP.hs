@@ -19,6 +19,11 @@ spec =
   testGroup
     "HOTP"
     [ testGroup
+        "HMAC-SHA-1"
+        [ testCase "Expected codes" testExpectedHotpSHA1Codes
+        , testCase "Validate code" testValidateHotpSHA1
+        ]
+    , testGroup
         "HMAC-SHA-256"
         [ testCase "Expected codes" testExpectedHotpSHA256Codes
         , testCase "Validate code" testValidateHotpSHA256
@@ -29,6 +34,43 @@ spec =
         , testCase "Validate code" testValidateHOTP512
         ]
     ]
+
+testExpectedHotpSHA1Codes :: Assertion
+testExpectedHotpSHA1Codes = do
+  digits <- assertJust $ mkDigits 6
+  key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
+  let counters = [0 .. 10]
+  let results = fmap (\counter -> display $ hotpSHA1 key counter digits) counters
+  assertEqual
+    "Codes are expected and stable"
+    [ "330386"
+    , "615329"
+    , "607660"
+    , "342886"
+    , "026069"
+    , "755245"
+    , "826812"
+    , "443075"
+    , "287960"
+    , "825614"
+    , "985075"
+    ]
+    results
+
+  forM_ results $ \code ->
+    assertBool
+      ("Code " <> show code <> " is not 6 characters long")
+      (Text.length (display code) == 6)
+
+testValidateHotpSHA1 :: Assertion
+testValidateHotpSHA1 = do
+  digits <- assertJust $ mkDigits 6
+  key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
+  let code = hotpSHA1 key 30 digits
+  let result = hotpSHA1Check key (29, 31) 30 digits (display code)
+  assertBool
+    "Code is checked"
+    result
 
 testExpectedHotpSHA256Codes :: Assertion
 testExpectedHotpSHA256Codes = do
