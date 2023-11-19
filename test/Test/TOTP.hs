@@ -2,7 +2,7 @@ module Test.TOTP where
 
 import Chronos
 import Data.Maybe (fromJust)
-import OTP
+import OTP.Commons
 import Test.Tasty
 import Test.Tasty.HUnit
 import Torsor (scale)
