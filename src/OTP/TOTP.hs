@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
 -- | Time-based One-Time Passwords (TOTP) with the HMAC-SHA-1, HMAC-SHA-256 and HMAC-SHA-512 algorithms.
 --
 -- They are single-use codes used for <https://en.wikipedia.org/wiki/Multi-factor_authentication 2-Factor Authentication>.
@@ -21,17 +24,29 @@ module OTP.TOTP
     -- ** HMAC-SHA-512
   , totpSHA512
   , totpSHA512Check
+
+    -- ** Utilities
+  , totpToURI
   ) where
 
 import Chronos (Time (..), Timespan (..))
 import Data.Text (Text)
-import Data.Text.Display
-import Data.Word
+import Data.Text qualified as Text
+import Data.Text.Display (display)
+import Data.Word (Word64)
+import Network.URI (escapeURIString, isUnescapedInURI)
 import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 
 import OTP.Commons
-import OTP.HOTP
+  ( Algorithm
+  , Digits
+  , OTP
+  , asSeconds
+  , totpCounter
+  , totpCounterRange
+  )
+import OTP.HOTP (hotpSHA1, hotpSHA256, hotpSHA512)
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
 --
@@ -149,3 +164,36 @@ totpSHA512Check secret range time period digits pass =
   let counters = totpCounterRange range time period
       passwords = fmap (\c -> display $ hotpSHA512 secret c digits) counters
    in elem pass passwords
+
+totpToURI
+  :: Text
+  -- ^ TOTP secret
+  -> Text
+  -- ^ Name of the account (usually an email address)
+  -> Text
+  -- ^ Issuer
+  -> Digits
+  -- ^ Amount of digits expected from the end-user
+  -> Timespan
+  -- ^ Amount of time before the generated code expires
+  -> Algorithm
+  -- ^ Algorithm required
+  -> Text
+totpToURI secret account issuer digits period algorithm =
+  Text.pack $
+    escapeURIString isUnescapedInURI $
+      Text.unpack $
+        "otpauth://totp/"
+          <> issuer
+          <> ":"
+          <> account
+          <> "?secret="
+          <> secret
+          <> "&issuer="
+          <> issuer
+          <> "&digits="
+          <> display digits
+          <> "&algorithm="
+          <> display algorithm
+          <> "&period="
+          <> display (asSeconds period)

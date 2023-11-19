@@ -21,6 +21,7 @@ spec =
     , testCase "HMAC-SHA-1 TOTP codes" testSHA1TOTPCodes
     , testCase "HMAC-SHA-256 TOTP codes" testSHA256TOTPCodes
     , testCase "HMAC-SHA-512 TOTP codes" testSHA512TOTPCodes
+    , testCase "URI generation" testTOTPURIGeneration
     ]
 
 testTOTPCounterFromTime :: Assertion
@@ -77,3 +78,18 @@ testSHA512TOTPCodes = do
   assertBool
     "Code is checked"
     result
+
+testTOTPURIGeneration :: Assertion
+testTOTPURIGeneration = do
+  let period = scale 30 second
+  digits <- assertJust $ mkDigits 6
+  key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
+  let issuer = "Localhost Inc"
+  let account = "username@localhost.localdomain"
+
+  let uri = totpToURI (SHA256.unsafeAuthenticationKeyToHexByteString key) account issuer digits period HMAC_SHA1
+
+  assertEqual
+    "Expected URI"
+    ""
+    uri

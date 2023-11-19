@@ -1,14 +1,17 @@
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module OTP.Commons
   ( -- * Auxiliary
     OTP (..)
   , Digits
+  , Algorithm (..)
   , mkDigits
   , digitsToWord32
   , totpCounter
   , counterRange
   , totpCounterRange
+  , asSeconds
   ) where
 
 import Chronos (Time (..), Timespan (..), epoch, second)
@@ -19,6 +22,30 @@ import Data.Text.Lazy.Builder qualified as Text
 import Data.Word
 import Text.Printf (printf)
 import Torsor qualified
+
+-- |
+--
+-- @since 3.0.0.0
+data Algorithm
+  = HMAC_SHA1
+  | HMAC_SHA256
+  | HMAC_SHA512
+  deriving stock
+    ( Eq
+      -- ^ @since 3.0.0.0
+    , Ord
+      -- ^ @since 3.0.0.0
+    , Show
+      -- ^ @since 3.0.0.0
+    )
+
+-- |
+--
+-- @since 3.0.0.0
+instance Display Algorithm where
+  displayBuilder HMAC_SHA1 = "SHA1"
+  displayBuilder HMAC_SHA256 = "SHA256"
+  displayBuilder HMAC_SHA512 = "SHA512"
 
 -- |
 --
@@ -50,6 +77,9 @@ displayWord32AsOTP digits code = Text.fromString $ printf ("%0" <> show digits <
 -- @since 3.0.0.0
 newtype Digits = Digits Word32
   deriving newtype (Eq, Show, Ord)
+  deriving
+    (Display)
+    via ShowInstance Digits
 
 digitsToWord32 :: Digits -> Word32
 digitsToWord32 (Digits digits) = digits
@@ -81,7 +111,7 @@ totpCounter time period =
   ts2word (asSeconds (sinceEpoch time)) `div` ts2word (asSeconds period)
   where
     ts2word :: Int64 -> Word64
-    ts2word s = fromIntegral s
+    ts2word = fromIntegral
 
 -- Until https://github.com/andrewthad/chronos/pull/83 is merged
 -- these two functions will live here
