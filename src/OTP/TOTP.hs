@@ -1,11 +1,24 @@
+-- | Time-based One-Time Passwords (TOTP) with the HMAC-SHA-1, HMAC-SHA-256 and HMAC-SHA-512 algorithms.
+--
+-- They are single-use codes used for <https://en.wikipedia.org/wiki/Multi-factor_authentication 2-Factor Authentication>.
+--
+-- ** Usage
+--
+-- >
 module OTP.TOTP
   ( OTP
 
     -- * TOTP
+
+    -- ** HMAC-SHA-1
   , totpSHA1
   , totpSHA1Check
+
+    -- ** HMAC-SHA-256
   , totpSHA256
   , totpSHA256Check
+
+    -- ** HMAC-SHA-512
   , totpSHA512
   , totpSHA512Check
   ) where

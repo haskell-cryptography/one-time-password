@@ -27,7 +27,14 @@ data OTP = OTP
   { digits :: Word32
   , code :: Word32
   }
-  deriving stock (Eq, Ord, Show)
+  deriving stock
+    ( Eq
+      -- ^ @since 3.0.0.0
+    , Ord
+      -- ^ @since 3.0.0.0
+    , Show
+      -- ^ @since 3.0.0.0
+    )
 
 -- |
 --

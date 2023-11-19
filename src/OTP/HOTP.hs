@@ -1,10 +1,17 @@
 module OTP.HOTP
-  ( -- * HOTP
-    OTP
+  ( OTP
+
+    -- * HOTP
+
+    -- ** HMAC-SHA-1
   , hotpSHA1
   , hotpSHA1Check
+
+    -- ** HMAC-SHA-256
   , hotpSHA256
   , hotpSHA256Check
+
+    -- ** HMAC-SHA-512
   , hotpSHA512
   , hotpSHA512Check
   ) where
