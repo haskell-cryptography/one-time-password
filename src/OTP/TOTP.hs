@@ -164,9 +164,14 @@ totpSHA512Check secret range time period digits pass =
       passwords = fmap (\c -> display $ hotpSHA512 secret c digits) counters
    in elem pass passwords
 
+-- | Create a URI suitable for authenticators.
+--
+-- The result of this function is best given to a QR Code generator for end-users to scan.
+--
+-- @since 3.0.0.0
 totpToURI
   :: Text
-  -- ^ TOTP secret
+  -- ^ Shared secret key.
   -> Text
   -- ^ Name of the account (usually an email address)
   -> Text

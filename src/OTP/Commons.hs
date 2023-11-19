@@ -108,7 +108,7 @@ totpCounter
   -> Word64
   -- ^ Resulting counter
 totpCounter time period =
-  ts2word (asSeconds (sinceEpoch time)) `div` ts2word (asSeconds period)
+  ts2word (asSeconds (sinceEpoch time)) `quot` ts2word (asSeconds period)
   where
     ts2word :: Int64 -> Word64
     ts2word = fromIntegral
