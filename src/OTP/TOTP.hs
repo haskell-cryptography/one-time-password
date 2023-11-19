@@ -3,12 +3,10 @@
 -- | Time-based One-Time Passwords (TOTP) with the HMAC-SHA-1, HMAC-SHA-256 and HMAC-SHA-512 algorithms.
 --
 -- They are single-use codes used for <https://en.wikipedia.org/wiki/Multi-factor_authentication 2-Factor Authentication>.
---
--- ** Usage
---
--- >
 module OTP.TOTP
-  ( OTP
+  ( -- ** Usage
+    -- $usage
+    OTP
 
     -- * TOTP
 
@@ -46,6 +44,38 @@ import OTP.Commons
   , totpCounterRange
   )
 import OTP.HOTP (hotpSHA1, hotpSHA256, hotpSHA512)
+
+-- $usage
+--
+-- > -- Generating a user's TOTP URI
+-- > import Chronos (second, now)
+-- > import Data.ByteString.Base32 qualified as Base32
+-- > import Data.Maybe (fromJust)
+-- > import Data.Text.Display
+-- > import OTP.Commons
+-- > import OTP.TOTP
+-- > import Sel.HMAC.SHA256 qualified as SHA256
+-- > import Torsor (scale)
+-- >
+-- > sharedKey <- SHA256.newAuthenticationKey
+-- > let period = scale 30 second
+-- > let digits = fromJust $ mkDigits 6
+-- > let issuer = "Localhost Inc"
+-- > let account = "username@localhost.localdomain"
+-- >
+-- > let uri =
+-- >       totpToURI
+-- >         (Base32.encodeBase32 $ SHA256.unsafeAuthenticationKeyToBinary key)
+-- >         account
+-- >         issuer
+-- >         digits
+-- >         period
+-- >         HMAC_SHA1
+-- >
+-- > -- Validating a user's TOTP digits
+-- > let userDigits = …
+-- > timestamp <- now
+-- > SHA256.totpSHA256Check sharedKey (0, 1) timestamp period digits (display code)
 
 -- | Compute a Time-Based One-Time Password using secret key and time.
 --
@@ -171,7 +201,7 @@ totpSHA512Check secret range time period digits pass =
 -- @since 3.0.0.0
 totpToURI
   :: Text
-  -- ^ Shared secret key.
+  -- ^ Shared secret key. Must be encoded in base32.
   -> Text
   -- ^ Name of the account (usually an email address)
   -> Text

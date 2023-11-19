@@ -11,8 +11,8 @@ import Test.Tasty.HUnit
 import Test.Utils
 import Torsor (scale)
 
-import OTP.Commons
-import OTP.TOTP
+import OTP.Commons (Algorithm (..), mkDigits, totpCounter)
+import OTP.TOTP (totpSHA1, totpSHA1Check, totpSHA256, totpSHA256Check, totpSHA512, totpSHA512Check, totpToURI)
 
 spec :: TestTree
 spec =
@@ -88,7 +88,14 @@ testTOTPURIGeneration = do
   let issuer = "Localhost Inc"
   let account = "username@localhost.localdomain"
 
-  let uri = totpToURI (Base32.encodeBase32 $ SHA256.unsafeAuthenticationKeyToBinary key) account issuer digits period HMAC_SHA1
+  let uri =
+        totpToURI
+          (Base32.encodeBase32 $ SHA256.unsafeAuthenticationKeyToBinary key)
+          account
+          issuer
+          digits
+          period
+          HMAC_SHA1
 
   assertEqual
     "Expected URI"
