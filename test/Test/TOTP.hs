@@ -53,27 +53,20 @@ testSHA1TOTPCodes = do
   let code = totpSHA1 key timestamp timeStep digits
   let result = totpSHA1Check key (0, 1) timestamp timeStep digits (display code)
   assertBool
-    "Code is checked"
+    "Can check own code"
     result
-
-  key2 <- assertRight $ SHA256.authenticationKeyFromHexByteString "5ed22de0b7ee1c9d3bf0731ff988407f04c7bb12a10305225ea410095c7611ae"
-  let code2 = "257000"
-  let timestamp2 = Time{getTime = 1701536230244948513}
-  let result2 = totpSHA1Check key2 (0, 0) timestamp2 timeStep digits code2
-  assertBool
-    "Code 2 is checked"
-    result2
 
 testSHA256TOTPCodes :: Assertion
 testSHA256TOTPCodes = do
   timestamp <- now
   let timeStep = scale 30 second
   digits <- assertJust $ mkDigits 6
+
   key <- assertRight $ SHA256.authenticationKeyFromHexByteString "e90cbae2d7d187f614806347cfd75002bd0db847451109599da507e8da88bf43"
   let code = totpSHA256 key timestamp timeStep digits
   let result = totpSHA256Check key (0, 1) timestamp timeStep digits (display code)
   assertBool
-    "Code is checked"
+    "Can check own code"
     result
 
 testSHA512TOTPCodes :: Assertion

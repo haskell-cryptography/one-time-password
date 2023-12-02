@@ -42,7 +42,7 @@ testExpectedHotpSHA1Codes = do
   let counters = [0 .. 10]
   let results = fmap (\counter -> display $ hotpSHA1 key counter digits) counters
   assertEqual
-    "Codes are expected and stable"
+    "HMAC-SHA1 Codes are expected and stable"
     [ "023113"
     , "181354"
     , "151026"
