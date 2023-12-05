@@ -44,7 +44,6 @@ import OTP.Commons
   , totpCounterRange
   )
 import OTP.HOTP (hotpSHA1, hotpSHA256, hotpSHA512)
-import Debug.Trace (traceShowId)
 
 -- $usage
 --
@@ -147,7 +146,7 @@ totpSHA1Check
 totpSHA1Check secret range time period digits pass =
   let counters = totpCounterRange range time period
       passwords = fmap (\c -> display $ hotpSHA1 secret c digits) counters
-   in elem pass (traceShowId passwords)
+   in elem pass passwords
 
 -- | Check presented password against time periods.
 --

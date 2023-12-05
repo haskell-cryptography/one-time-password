@@ -42,11 +42,11 @@ hotpSHA1
   -- ^ Number of digits in a password. MUST be 6 digits at a minimum, and possibly 7 and 8 digits.
   -> OTP
   -- ^ HOTP
-hotpSHA1 key counter digits' = unsafePerformIO $ do
+hotpSHA1 authKey counter digits' = unsafePerformIO $ do
   let digits = digitsToWord32 digits'
   let msg = runPut $ putWord64be counter
-  let hexKey = SHA256.unsafeAuthenticationKeyToHexByteString key
-  let hash = SHA1.hmac hexKey msg
+  let key = SHA256.unsafeAuthenticationKeyToBinary authKey
+  let hash = SHA1.hmac key msg
   let code = truncateHash $ BS.unpack hash
   let result = code `rem` (10 ^ digits)
   pure $ OTP digits result

@@ -57,9 +57,9 @@ testSHA1TOTPCodes = do
     result
 
   key2 <- assertRight $ SHA256.authenticationKeyFromHexByteString "5ed22de0b7ee1c9d3bf0731ff988407f04c7bb12a10305225ea410095c7611ae"
-  let code2 = "964568"
-  let timestamp2 = Time {getTime = 1701536230244948513}
-  let result2 = totpSHA1Check key2 (0, 1) timestamp2 timeStep digits code2
+  let code2 = "257000"
+  let timestamp2 = Time{getTime = 1701536230244948513}
+  let result2 = totpSHA1Check key2 (0, 0) timestamp2 timeStep digits code2
   assertBool
     "Code 2 is checked"
     result2

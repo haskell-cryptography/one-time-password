@@ -43,17 +43,17 @@ testExpectedHotpSHA1Codes = do
   let results = fmap (\counter -> display $ hotpSHA1 key counter digits) counters
   assertEqual
     "Codes are expected and stable"
-    [ "330386"
-    , "615329"
-    , "607660"
-    , "342886"
-    , "026069"
-    , "755245"
-    , "826812"
-    , "443075"
-    , "287960"
-    , "825614"
-    , "985075"
+    [ "023113"
+    , "181354"
+    , "151026"
+    , "300498"
+    , "479326"
+    , "661773"
+    , "464666"
+    , "430540"
+    , "941671"
+    , "303579"
+    , "027354"
     ]
     results
 
