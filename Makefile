@@ -8,6 +8,7 @@ build: ## Build the project in fast mode
 	@cabal build all
 
 test: ## Build and run the test suite
+	@cabal repl --with-ghc=doctest
 	@cabal test all
 
 clean: ## Remove compilation artifacts

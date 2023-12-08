@@ -23,6 +23,15 @@ import Data.Word
 import Text.Printf (printf)
 import Torsor qualified
 
+-- $setup
+-- >>> import Chronos qualified
+-- >>> import Chronos (DatetimeFormat(..))
+-- >>> import Torsor qualified
+-- >>> import Data.Maybe (fromJust)
+-- >>> :set -XOverloadedStrings
+-- >>> let format = DatetimeFormat (Just '-') (Just ' ') (Just ':')
+-- >>> let decode txt = Chronos.datetimeToTime $ fromJust $ Chronos.decode_YmdHMS format txt
+
 -- |
 --
 -- @since 3.0.0.0
@@ -98,6 +107,18 @@ mkDigits userDigits
 
 -- | Calculate HOTP counter using time. Starting time (T0
 -- according to RFC6238) is 0 (begining of UNIX epoch)
+-- >>> let timestamp = decode "2010-10-10 00:00:30"
+-- >>> let timespan = Torsor.scale 30 Chronos.second
+-- >>> totpCounter timestamp timespan
+-- 42888961
+--
+-- >>> let timestamp2 = decode "2010-10-10 00:00:45"
+-- >>> totpCounter timestamp2 timespan
+-- 42888961
+--
+-- >>> let timestamp3 = decode "2010-10-10 00:01:00"
+-- >>> totpCounter timestamp3 timespan
+-- 42888962
 --
 -- @since 3.0.0.0
 totpCounter
@@ -169,6 +190,11 @@ counterRange (tolow', tohigh') ideal =
     trim l h = max l . min h
 
 -- | Make a sequence of acceptable periods.
+--
+-- >>> let time = decode "2010-10-10 00:00:30"
+-- >>> let timespan = Torsor.scale 30 Chronos.second
+-- >>> totpCounterRange (1, 1) time timespan
+-- [42888960,42888961,42888962]
 --
 -- @since 3.0.0.0
 totpCounterRange

@@ -8,21 +8,22 @@ module OTP.TOTP
     -- $usage
     OTP
 
-    -- * TOTP
-
     -- ** HMAC-SHA-1
+  , newSHA1Key
   , totpSHA1
   , totpSHA1Check
 
     -- ** HMAC-SHA-256
+  , newSHA256Key
   , totpSHA256
   , totpSHA256Check
 
     -- ** HMAC-SHA-512
+  , newSHA512Key
   , totpSHA512
   , totpSHA512Check
 
-    -- ** Utilities
+    -- ** URI Generation
   , totpToURI
   ) where
 
@@ -43,41 +44,16 @@ import OTP.Commons
   , totpCounter
   , totpCounterRange
   )
-import OTP.HOTP (hotpSHA1, hotpSHA256, hotpSHA512)
+import OTP.HOTP
+  ( hotpSHA1
+  , hotpSHA256
+  , hotpSHA512
+  , newSHA1Key
+  , newSHA256Key
+  , newSHA512Key
+  )
 
--- $usage
---
--- > -- Generating a user's TOTP URI
--- > import Chronos (second, now)
--- > import Data.ByteString.Base32 qualified as Base32
--- > import Data.Maybe (fromJust)
--- > import Data.Text.Display
--- > import OTP.Commons
--- > import OTP.TOTP
--- > import Sel.HMAC.SHA256 qualified as SHA256
--- > import Torsor (scale)
--- >
--- > sharedKey <- SHA256.newAuthenticationKey
--- > let period = scale 30 second
--- > let digits = fromJust $ mkDigits 6
--- > let issuer = "Localhost Inc"
--- > let account = "username@localhost.localdomain"
--- >
--- > let uri =
--- >       totpToURI
--- >         (Base32.encodeBase32 $ SHA256.unsafeAuthenticationKeyToBinary key)
--- >         account
--- >         issuer
--- >         digits
--- >         period
--- >         HMAC_SHA1
--- >
--- > -- Validating a user's TOTP digits
--- > let userDigits = …
--- > timestamp <- now
--- > SHA256.totpSHA256Check sharedKey (0, 1) timestamp period digits (display code)
-
--- | Compute a Time-Based One-Time Password using secret key and time.
+-- | Compute a Time-based One-Time Password using secret key and time.
 --
 -- @since 3.0.0.0
 totpSHA1
@@ -93,7 +69,7 @@ totpSHA1
   -- ^ TOTP
 totpSHA1 secret time period = hotpSHA1 secret (totpCounter time period)
 
--- | Compute a Time-Based One-Time Password using secret key and time.
+-- | Compute a Time-based One-Time Password using secret key and time.
 --
 -- @since 3.0.0.0
 totpSHA256
@@ -109,7 +85,7 @@ totpSHA256
   -- ^ TOTP
 totpSHA256 secret time period = hotpSHA256 secret (totpCounter time period)
 
--- | Compute a Time-Based One-Time Password using secret key and time.
+-- | Compute a Time-based One-Time Password using secret key and time.
 --
 -- @since 3.0.0.0
 totpSHA512
