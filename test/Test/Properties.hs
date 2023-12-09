@@ -11,7 +11,8 @@ import Data.Function ((&))
 import Data.Functor ((<&>))
 import Data.Int (Int64)
 import Data.Maybe (fromJust)
-import Data.Text.Display (Display (..))
+import Data.Text qualified as Text
+import Data.Text.Display (Display (..), display)
 import Data.Word (Word32)
 import Sel.HMAC.SHA256 qualified as HMAC
 import System.IO.Unsafe (unsafeDupablePerformIO)
@@ -27,6 +28,7 @@ spec =
   testGroup
     "Properties"
     [ digitNumberProperty
+    , timePeriodProperty
     ]
 
 -- Properties
@@ -45,6 +47,41 @@ digitNumberProperty = testProperty "Digit parameter determines the length of the
         expectedLength = digitsToWord32 digits
         actualLength = totp.digits
      in expectedLength === actualLength
+
+timePeriodProperty :: TestTree
+timePeriodProperty = testProperty "A code stays stable within a time frame with the same key & digit parameters" $
+  property $ \(Key key, ArbitraryDigits digits, SeparationTime separationTime, ArbitraryTime timestamp') ->
+    let period = Torsor.scale separationTime second
+        validUntil = Torsor.add period timestamp'
+        (Timespan nanoseconds) = period
+        timestamp = Torsor.add (Timespan (negate $ nanoseconds `div` 2)) validUntil
+        totp =
+          TOTP.totpSHA1
+            key
+            timestamp'
+            period
+            digits
+     in counterexample
+          ( Text.unpack $
+              mconcat
+                [ "Time: "
+                , display timestamp'
+                , ", Separation time (tested period): "
+                , display period
+                , ", Valid until: "
+                , display validUntil
+                , ", Time tested: "
+                , display timestamp
+                ]
+          )
+          ( TOTP.totpSHA1Check
+              key
+              (0, 1)
+              timestamp
+              period
+              digits
+              (display totp.code)
+          )
 
 newtype ArbitraryDigits = ArbitraryDigits Digits
   deriving (Eq, Show) via Digits
