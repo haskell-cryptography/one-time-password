@@ -22,8 +22,8 @@ import Test.Tasty.QuickCheck
 import Torsor qualified
 
 import OTP.Commons
-import OTP.TOTP qualified as TOTP
 import OTP.HOTP qualified as HOTP
+import OTP.TOTP qualified as TOTP
 
 spec :: TestTree
 spec =
