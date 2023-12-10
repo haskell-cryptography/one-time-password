@@ -7,6 +7,7 @@ module Test.Properties where
 
 import Chronos
 import Control.Monad (guard)
+import Data.ByteString.Char8 qualified as SBSC
 import Data.Function ((&))
 import Data.Functor ((<&>))
 import Data.Int (Int64)
@@ -22,6 +23,7 @@ import Torsor qualified
 
 import OTP.Commons
 import OTP.TOTP qualified as TOTP
+import OTP.HOTP qualified as HOTP
 
 spec :: TestTree
 spec =
@@ -50,37 +52,48 @@ digitNumberProperty = testProperty "Digit parameter determines the length of the
 
 timePeriodProperty :: TestTree
 timePeriodProperty = testProperty "A code stays stable within a time frame with the same key & digit parameters" $
-  property $ \(Key key, ArbitraryDigits digits, SeparationTime separationTime, ArbitraryTime timestamp') ->
+  property $ \(Key key, ArbitraryDigits digits, SeparationTime separationTime, ArbitraryTime signtime) ->
     let period = Torsor.scale separationTime second
-        validUntil = Torsor.add period timestamp'
+        validUntil = Torsor.add period signtime
         (Timespan nanoseconds) = period
-        timestamp = Torsor.add (Timespan (negate $ nanoseconds `div` 2)) validUntil
+        checktime = Torsor.add (Timespan (negate $ nanoseconds `div` 2)) validUntil
         totp =
           TOTP.totpSHA1
             key
-            timestamp'
+            signtime
             period
             digits
+        signCounter = totpCounter signtime period
+        checkCounters = totpCounterRange (1, 0) checktime period
+        checkCodes = fmap (\c -> HOTP.hotpSHA1 key c digits) checkCounters
      in counterexample
           ( Text.unpack $
               mconcat
                 [ "Time: "
-                , display timestamp'
+                , display signtime
                 , ", Separation time (tested period): "
                 , display period
                 , ", Valid until: "
                 , display validUntil
                 , ", Time tested: "
-                , display timestamp
+                , display checktime
+                , ", Code tested: "
+                , display totp
+                , ", Codes checked against: "
+                , display checkCodes
+                , ", Counter at generation: "
+                , display signCounter
+                , ", Counters checked for: "
+                , display checkCounters
                 ]
           )
           ( TOTP.totpSHA1Check
               key
-              (0, 1)
-              timestamp
+              (1, 0)
+              checktime
               period
               digits
-              (display totp.code)
+              (display totp)
           )
 
 newtype ArbitraryDigits = ArbitraryDigits Digits
@@ -92,7 +105,14 @@ instance Arbitrary ArbitraryDigits where
 deriving instance Arbitrary Time
 
 newtype Key = Key {getKey :: HMAC.AuthenticationKey}
-  deriving newtype (Eq, Ord, Show)
+  deriving newtype (Eq, Ord)
+
+-- This instance deliberately exposes the actual value of the key so that
+-- failing tests will return more information. This is safe because the 'Key'
+-- type is local to this testing module and is only used to generate random
+-- test keys for property tests.
+instance Show Key where
+  show (Key key) = SBSC.unpack $ HMAC.unsafeAuthenticationKeyToHexByteString key
 
 instance Arbitrary Key where
   arbitrary = pure $ Key $ unsafeDupablePerformIO HMAC.newAuthenticationKey
