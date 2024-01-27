@@ -8,3 +8,7 @@ tags
 tags.mtime
 .DS_Store
 TAGS
+
+.env
+.direnv
+result
