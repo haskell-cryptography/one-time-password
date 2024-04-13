@@ -11,20 +11,13 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs{inherit system;};
-
-        haskellPackages = pkgs.haskellPackages.override {
-          overrides = hself: hsuper: {
-              libsodium-bindings = inputs.libsodium-bindings.packages.${system}.libsodium-bindings;
-              sel = inputs.libsodium-bindings.packages.${system}.sel;
-          };
-        };
       in
       rec
       {
         packages.one-time-password =
-          haskellPackages.callCabal2nix "one-time-password" ./.
+          pkgs.haskellPackages.callCabal2nix "one-time-password" ./.
             {
-              base32 = haskellPackages.base32_0_4;
+              base32 = pkgs.haskellPackages.base32_0_4;
               sel = inputs.libsodium-bindings.packages.${system}.sel;
             };
 
@@ -39,7 +32,7 @@
             };
           in
           pkgs.mkShell {
-            buildInputs = with haskellPackages; [
+            buildInputs = with pkgs.haskellPackages; [
               pkgs.libsodium
               haskell-language-server
               ghcid
