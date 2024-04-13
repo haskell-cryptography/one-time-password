@@ -2,9 +2,13 @@
   description = "one-time-password";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11-small";
     flake-utils.url = "github:numtide/flake-utils";
     libsodium-bindings.url = "github:haskell-cryptography/libsodium-bindings";
+    chronos = {
+      url = "github:byteverse/chronos";
+      flake = false;
+    };
   };
 
   outputs = { self, nixpkgs, flake-utils, ... }@inputs:
@@ -18,6 +22,7 @@
           pkgs.haskellPackages.callCabal2nix "one-time-password" ./.
             {
               base32 = pkgs.haskellPackages.base32_0_4;
+              chronos = pkgs.haskellPackages.callCabal2nix "chronos" inputs.chronos {};
               sel = inputs.libsodium-bindings.packages.${system}.sel;
             };
 
