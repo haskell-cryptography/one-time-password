@@ -5,6 +5,8 @@ active-repositories: hackage.haskell.org
 
 tests: True
 
-documentation: true
+package *
+  ghc-options: -haddock
+  documentation: true
 
 test-show-details: direct
