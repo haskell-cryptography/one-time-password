@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.0.0.0 — 13-04-2024
+
+* The library has been transferred to the Haskell Cryptography Group's stewardship;
+* Switch to use `sel` for the cryptography provider;
+* Support for GHC from 9.4 to 9.8;
+* See the `OTP.TOTP` and the test suite for example usage.
+
 ## 2.0.0
 ### Changed
 * Change versioning to semver
