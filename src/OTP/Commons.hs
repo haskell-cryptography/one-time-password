@@ -11,17 +11,15 @@ module OTP.Commons
   , totpCounter
   , counterRange
   , totpCounterRange
-  , asSeconds
   ) where
 
-import Chronos (Time (..), Timespan (..), epoch, second)
+import Chronos (Time (..), Timespan (..), asSeconds, sinceEpoch)
 import Data.Int (Int64)
 import Data.Text.Display
 import Data.Text.Lazy.Builder (Builder)
 import Data.Text.Lazy.Builder qualified as Text
 import Data.Word
 import Text.Printf (printf)
-import Torsor qualified
 
 -- $setup
 -- >>> import Chronos qualified
@@ -133,15 +131,6 @@ totpCounter time period =
   where
     ts2word :: Int64 -> Word64
     ts2word = fromIntegral
-
--- Until https://github.com/andrewthad/chronos/pull/83 is merged
--- these two functions will live here
-sinceEpoch :: Time -> Timespan
-sinceEpoch t = Torsor.difference t epoch
-
-asSeconds :: Timespan -> Int64
-asSeconds (Timespan t) = case second of
-  Timespan s -> t `div` s
 
 -- | Make a sequence of acceptable counters, protected from
 -- arithmetic overflow. Maximum range is limited to 1000 due to huge

@@ -40,7 +40,7 @@ testCryptonSHA1TOTP = do
   key <- assertRight $ SHA256.authenticationKeyFromHexByteString hexKey
   let cryptoniteKey = Base.decodeBase16 $ Base.assertBase16 @StrictByteString hexKey
   timestamp@(Time ns) <- Chronos.now
-  let seconds = ns `quot` (10 ^ 9 :: Int64)
+  let seconds = ns `quot` (10 ^ (9 :: Int64))
   let timeStep = scale 30 Chronos.second
   digits <- assertJust $ mkDigits 6
 
@@ -63,7 +63,7 @@ testCryptonSHA256TOTP = do
   key <- assertRight $ SHA256.authenticationKeyFromHexByteString hexKey
   let cryptonKey = Base.decodeBase16 $ Base.assertBase16 @StrictByteString hexKey
   timestamp@(Time ns) <- Chronos.now
-  let seconds = ns `quot` (10 ^ 9 :: Int64)
+  let seconds = ns `quot` (10 ^ (9 :: Int64))
   let timeStep = scale 30 Chronos.second
   digits <- assertJust $ mkDigits 6
   totpParams <-
@@ -94,7 +94,7 @@ testCryptonSHA512TOTP = do
   key <- assertRight $ SHA512.authenticationKeyFromHexByteString hexKey
   let cryptonKey = Base.decodeBase16 $ Base.assertBase16 @StrictByteString hexKey
   timestamp@(Time ns) <- Chronos.now
-  let seconds = ns `quot` (10 ^ 9 :: Int64)
+  let seconds = ns `quot` (10 ^ (9 :: Int64))
   let timeStep = scale 30 Chronos.second
   digits <- assertJust $ mkDigits 6
   totpParams <-
