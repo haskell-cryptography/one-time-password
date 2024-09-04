@@ -25,6 +25,15 @@ module OTP.TOTP
 
     -- ** URI Generation
   , totpToURI
+
+    -- ** Re-exports for convenience
+  , Chronos.Time
+  , Chronos.Timespan
+  , OTP.Commons.Algorithm
+  , OTP.Commons.Digits
+  , SHA256.AuthenticationKey
+  , digitsToWord32
+  , mkDigits
   ) where
 
 import Chronos (Time (..), Timespan (..), asSeconds)
@@ -40,6 +49,8 @@ import OTP.Commons
   ( Algorithm
   , Digits
   , OTP
+  , digitsToWord32
+  , mkDigits
   , totpCounter
   , totpCounterRange
   )

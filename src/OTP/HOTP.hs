@@ -15,6 +15,11 @@ module OTP.HOTP
   , newSHA512Key
   , hotpSHA512
   , hotpSHA512Check
+
+    -- ** Re-exports for convenience
+  , OTP.Commons.Digits
+  , SHA256.AuthenticationKey
+  , mkDigits
   ) where
 
 import Crypto.Hash.SHA1 qualified as SHA1

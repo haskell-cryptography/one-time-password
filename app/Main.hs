@@ -1,20 +1,20 @@
 module Main (main) where
 
-import Chronos (Time (..), Timespan (..), datetimeToTime, decode_YmdHMS, now, second, w3c)
+import Chronos (datetimeToTime, decode_YmdHMS, now, second, w3c)
 import Data.ByteString (StrictByteString)
-import qualified Data.ByteString.Char8 as BSC8
+import Data.ByteString.Char8 qualified as BSC8
 import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text.Display
-import qualified Data.Text.Encoding as TE
-import qualified Data.Text.IO as TIO
+import Data.Text.Encoding qualified as TE
+import Data.Text.IO qualified as TIO
 import Data.Version (showVersion)
 import Data.Word
 import Options.Applicative
 import Paths_one_time_password (version)
 import Sel (secureMain)
-import qualified Sel.HMAC.SHA256 as SHA256
-import qualified Sel.HMAC.SHA512 as SHA512
+import Sel.HMAC.SHA256 qualified as SHA256
+import Sel.HMAC.SHA512 qualified as SHA512
 import System.Exit (exitFailure)
 import Torsor (scale)
 
