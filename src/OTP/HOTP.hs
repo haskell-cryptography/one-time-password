@@ -1,5 +1,5 @@
 module OTP.HOTP
-  ( OTP
+  ( OTP (..)
 
     -- ** HMAC-SHA-1
   , newSHA1Key
@@ -16,9 +16,8 @@ module OTP.HOTP
   , hotpSHA512
   , hotpSHA512Check
 
-    -- ** Re-exports for convenience
-  , OTP.Commons.Digits
-  , SHA256.AuthenticationKey
+    -- ** Re-exports from OTP.Commons
+  , Digits
   , mkDigits
   ) where
 

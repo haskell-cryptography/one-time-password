@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Chronos (datetimeToTime, decode_YmdHMS, now, second, w3c)
+import Chronos (Time (..), Timespan (..), datetimeToTime, decode_YmdHMS, now, second, w3c)
 import Data.ByteString (StrictByteString)
 import Data.ByteString.Char8 qualified as BSC8
 import Data.Maybe (fromJust)
