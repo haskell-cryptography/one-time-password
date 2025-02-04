@@ -21,7 +21,7 @@ lint: ## Run the code linter (HLint)
 	@find src test -name "*.hs" | xargs -P $(PROCS) -I {} hlint --refactor-options="-i" --refactor {}
 
 style: ## Run the code formatter (fourmolu, cabal-fmt)
-	@cabal-fmt -i one-time-password.cabal
+	@cabal-gild --io one-time-password.cabal
 	@fourmolu -q --mode inplace test src
 
 help: ## Display this help message
