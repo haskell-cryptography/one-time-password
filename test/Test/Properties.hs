@@ -136,7 +136,8 @@ instance Display Time where
     let format = DatetimeFormat (Just '-') (Just ' ') (Just ':')
      in time
           & timeToDatetime
-          & builder_YmdHMS (SubsecondPrecisionFixed 0) format
+          & encode_YmdHMS (SubsecondPrecisionFixed 0) format
+          & displayBuilder
 
 instance Display Timespan where
   displayBuilder timespan = displayBuilder (asSeconds timespan) <> "s"

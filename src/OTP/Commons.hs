@@ -16,8 +16,7 @@ module OTP.Commons
 import Chronos (Time (..), Timespan (..), asSeconds, sinceEpoch)
 import Data.Int (Int64)
 import Data.Text.Display
-import Data.Text.Lazy.Builder (Builder)
-import Data.Text.Lazy.Builder qualified as Text
+import Data.Text.Builder.Linear (Builder)
 import Data.Word
 import Text.Printf (printf)
 
@@ -77,7 +76,7 @@ instance Display OTP where
   displayBuilder OTP{digits, code} = displayWord32AsOTP digits code
 
 displayWord32AsOTP :: Word32 -> Word32 -> Builder
-displayWord32AsOTP digits code = Text.fromString $ printf ("%0" <> show digits <> "u") code
+displayWord32AsOTP digits code = displayBuilder @String $ printf ("%0" <> show digits <> "u") code
 
 -- |
 --
