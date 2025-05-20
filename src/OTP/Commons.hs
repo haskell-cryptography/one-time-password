@@ -15,8 +15,8 @@ module OTP.Commons
 
 import Chronos (Time (..), Timespan (..), asSeconds, sinceEpoch)
 import Data.Int (Int64)
-import Data.Text.Display
 import Data.Text.Builder.Linear (Builder)
+import Data.Text.Display
 import Data.Word
 import Text.Printf (printf)
 

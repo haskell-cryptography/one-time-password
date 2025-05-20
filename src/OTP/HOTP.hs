@@ -101,13 +101,13 @@ hotpSHA256
   -- ^ Number of digits in a password. MUST be 6 digits at a minimum, and possibly 7 and 8 digits.
   -> OTP
   -- ^ HOTP
-hotpSHA256 key counter digits' = unsafePerformIO $ do
+hotpSHA256 key counter digits' =
   let digits = digitsToWord32 digits'
-  let msg = runPut $ putWord64be counter
-  hash <- SHA256.authenticationTagToBinary <$> SHA256.authenticate msg key
-  let code = truncateHash $ BS.unpack hash
-  let result = code `rem` (10 ^ digits)
-  pure $ OTP digits result
+      msg = runPut $ putWord64be counter
+      hash = SHA256.authenticationTagToBinary $ SHA256.authenticate msg key
+      code = truncateHash $ BS.unpack hash
+      result = code `rem` (10 ^ digits)
+   in OTP digits result
 
 -- | Check presented password against a valid range.
 --
@@ -150,13 +150,13 @@ hotpSHA512
   -- ^ Number of digits in a password
   -> OTP
   -- ^ HOTP
-hotpSHA512 key counter digits' = unsafePerformIO $ do
+hotpSHA512 key counter digits' =
   let digits = digitsToWord32 digits'
-  let msg = runPut $ putWord64be counter
-  hash <- SHA512.authenticationTagToBinary <$> SHA512.authenticate msg key
-  let code = truncateHash $ BS.unpack hash
-  let result = code `rem` (10 ^ digits)
-  pure $ OTP digits result
+      msg = runPut $ putWord64be counter
+      hash = SHA512.authenticationTagToBinary $ SHA512.authenticate msg key
+      code = truncateHash $ BS.unpack hash
+      result = code `rem` (10 ^ digits)
+   in OTP digits result
 
 -- |
 --
