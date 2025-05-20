@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 3.0.1.0 — 20-05-2025
+* Support latest versions of `text`, `text-display` and `sel`
+
 ## 3.0.0.0 — 13-04-2024
 
 * The library has been transferred to the Haskell Cryptography Group's stewardship;
