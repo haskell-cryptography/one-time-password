@@ -107,7 +107,7 @@ hotpSHA256 key counter digits' =
       hash = SHA256.authenticationTagToBinary $ SHA256.authenticate msg key
       code = truncateHash $ BS.unpack hash
       result = code `rem` (10 ^ digits)
-  in OTP digits result
+   in OTP digits result
 
 -- | Check presented password against a valid range.
 --
@@ -156,7 +156,7 @@ hotpSHA512 key counter digits' =
       hash = SHA512.authenticationTagToBinary $ SHA512.authenticate msg key
       code = truncateHash $ BS.unpack hash
       result = code `rem` (10 ^ digits)
-  in OTP digits result
+   in OTP digits result
 
 -- |
 --
