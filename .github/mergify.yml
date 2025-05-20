@@ -1,16 +1,16 @@
-
 pull_request_rules:
-  # rebase+merge strategy
-  - name: refactored queue action rule
-    actions:
-      queue:
-queue_rules:
-  - name: default
-    queue_conditions:
+  - name: Queue
+    conditions:
       - label=merge me
       - '#approved-reviews-by>=1'
       - label=squash+merge me
       - '#approved-reviews-by>=1'
-    conditions: []
+    actions:
+      queue:
+        name: "default"
+
+queue_rules:
+  - name: default
+    update_bot_account: kleidukos
     merge_method: squash
-    update_method: merge
+    update_method: rebase
