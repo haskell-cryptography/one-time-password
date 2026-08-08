@@ -9,7 +9,6 @@ import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 
 import Data.Text qualified as Text
-import OTP.Commons
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Utils
