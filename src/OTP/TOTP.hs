@@ -6,7 +6,7 @@
 module OTP.TOTP
   ( -- ** Usage
     -- $usage
-    OTP
+    OTP (..)
 
     -- ** HMAC-SHA-1
   , newSHA1Key
@@ -25,6 +25,12 @@ module OTP.TOTP
 
     -- ** URI Generation
   , totpToURI
+
+    -- ** Re-exports from OTP.Commons
+  , Algorithm (..)
+  , Digits
+  , digitsToWord32
+  , mkDigits
   ) where
 
 import Chronos (Time (..), Timespan (..), asSeconds)
@@ -37,9 +43,11 @@ import Sel.HMAC.SHA256 qualified as SHA256
 import Sel.HMAC.SHA512 qualified as SHA512
 
 import OTP.Commons
-  ( Algorithm
+  ( Algorithm (..)
   , Digits
-  , OTP
+  , OTP (..)
+  , digitsToWord32
+  , mkDigits
   , totpCounter
   , totpCounterRange
   )
